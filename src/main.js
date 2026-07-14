@@ -33,14 +33,14 @@ function saveGlobalLock(locked) {
   } catch (e) {}
 }
 
-// Default initial widgets if none exist yet
+// Default initial widgets matching the 1:1 Apple layout from user photos
 const defaultWidgets = [
-  { id: 'w-clock-1', type: 'clock', size: '2x1', x: 80, y: 80, alwaysOnTop: false },
-  { id: 'w-weather-1', type: 'weather', size: '2x1', x: 460, y: 80, alwaysOnTop: false },
-  { id: 'w-battery-1', type: 'battery', size: '2x2', x: 80, y: 270, alwaysOnTop: false },
-  { id: 'w-todo-1', type: 'todo', size: '2x2', x: 460, y: 270, alwaysOnTop: false },
-  { id: 'w-quote-1', type: 'quote', size: '2x1', x: 80, y: 650, alwaysOnTop: false },
-  { id: 'w-launcher-1', type: 'launcher', size: '2x2', x: 840, y: 270, alwaysOnTop: false },
+  { id: 'w-clock-1', type: 'clock', size: '2x1', x: 80, y: 70, alwaysOnTop: false },
+  { id: 'w-battery-1', type: 'battery', size: '2x1', x: 80, y: 265, alwaysOnTop: false },
+  { id: 'w-todo-1', type: 'todo', size: '2x2', x: 80, y: 460, alwaysOnTop: false },
+  { id: 'w-launcher-1', type: 'launcher', size: '2x2', x: 470, y: 265, alwaysOnTop: false },
+  { id: 'w-weather-1', type: 'weather', size: '2x1', x: 470, y: 70, alwaysOnTop: false },
+  { id: 'w-quote-1', type: 'quote', size: '2x1', x: 470, y: 655, alwaysOnTop: false },
 ];
 
 function loadWidgetsConfig() {
@@ -66,13 +66,13 @@ function saveWidgetsConfig(widgetsList) {
 
 function getDimensionsForSize(size) {
   switch (size) {
-    case '1x1': return { width: 176, height: 176 };
-    case '2x1': return { width: 366, height: 176 };
-    case '2x2': return { width: 366, height: 366 };
-    case '4x1': return { width: 736, height: 176 };
-    case '4x2': return { width: 736, height: 366 };
-    case '2x3': return { width: 366, height: 556 };
-    default: return { width: 366, height: 366 };
+    case '1x1': return { width: 178, height: 178 };
+    case '2x1': return { width: 372, height: 178 };
+    case '2x2': return { width: 372, height: 372 };
+    case '4x1': return { width: 760, height: 178 };
+    case '4x2': return { width: 760, height: 372 };
+    case '2x3': return { width: 372, height: 566 };
+    default: return { width: 372, height: 372 };
   }
 }
 
@@ -98,7 +98,7 @@ function createWidgetWindow(widget) {
     hasShadow: false,
     resizable: false,
     movable: !globalLocked, // When global lock is enabled, prevent moving so widget is pinned firmly to desktop
-    skipTaskbar: true, // Do not crowd the taskbar
+    skipTaskbar: true,
     alwaysOnTop: widget.alwaysOnTop || false,
     webPreferences: {
       nodeIntegration: true,
@@ -116,7 +116,6 @@ function createWidgetWindow(widget) {
     win.loadURL(prodUrl);
   }
 
-  // Track window move events and auto-save exact coordinates
   win.on('moved', () => {
     if (win.isDestroyed() || globalLocked) return;
     const [newX, newY] = win.getPosition();
@@ -144,13 +143,13 @@ function createHubWindow() {
     width: 920,
     height: 680,
     center: true,
-    transparent: false, // Settings window must be OPAQUE and crystal clear!
-    backgroundColor: '#1C1C1E', // Solid Apple Dark Mode Settings background
-    frame: true, // Native window controls so it behaves like a true settings app
+    transparent: false,
+    backgroundColor: '#1C1C1E',
+    frame: true,
     autoHideMenuBar: true,
-    title: 'MacWidgets 小组件设置与组件库 (Settings & Gallery)',
+    title: 'MacWidgets 小组件设置与组件库 (1:1 Apple Contour Replica)',
     resizable: true,
-    skipTaskbar: false, // Show Settings in taskbar
+    skipTaskbar: false,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false
@@ -190,7 +189,7 @@ function createTrayIcon() {
         { type: 'separator' },
         { label: '❌ 退出 MacWidgets', click: () => app.quit() }
       ]);
-      tray.setToolTip('MacWidgets for Windows · 独立桌面组件');
+      tray.setToolTip('MacWidgets for Windows · 1:1 Apple Contour');
       tray.setContextMenu(contextMenu);
       tray.on('double-click', () => createHubWindow());
     }
@@ -203,7 +202,6 @@ function toggleGlobalLockState(forceState) {
   globalLocked = forceState !== undefined ? forceState : !globalLocked;
   saveGlobalLock(globalLocked);
 
-  // Apply to all active windows
   activeWindows.forEach(win => {
     if (!win.isDestroyed()) {
       win.setMovable(!globalLocked);
@@ -215,7 +213,7 @@ function toggleGlobalLockState(forceState) {
     hubWindow.webContents.send('lock-changed', globalLocked);
   }
   
-  createTrayIcon(); // Rebuild menu with new lock state text
+  createTrayIcon();
 }
 
 function initAllWidgets() {
@@ -273,8 +271,8 @@ ipcMain.on('add-widget', (event, { type, size }) => {
   const newId = `w-${type}-${Date.now()}`;
   
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
-  const newX = Math.floor((width / 2) - 180 + (Math.random() * 140 - 70));
-  const newY = Math.floor((height / 2) - 180 + (Math.random() * 140 - 70));
+  const newX = Math.floor((width / 2) - 186 + (Math.random() * 140 - 70));
+  const newY = Math.floor((height / 2) - 186 + (Math.random() * 140 - 70));
 
   const newWidget = { id: newId, type, size, x: newX, y: newY, alwaysOnTop: false };
   const updated = [newWidget, ...widgets];

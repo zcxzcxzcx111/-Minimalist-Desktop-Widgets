@@ -1,112 +1,86 @@
 import React, { useState } from 'react';
-import { Sun, CloudRain, Wind, Award, Flame, CheckCircle2 } from 'lucide-react';
+import { Sun, CloudRain, Wind, Flame, CheckCircle2, Award } from 'lucide-react';
 
 export default function WeatherWidget({ size = '2x1' }) {
-  const [habitDays, setHabitDays] = useState([true, true, true, false, true, true, false]);
-  const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  const [habitStreak, setHabitStreak] = useState(5);
+  const [dots] = useState([
+    true, true, true, true, true, false, false,
+    true, true, true, true, false, false, false,
+    true, true, true, true, true, true, false,
+    false, true, true, true, true, false, false,
+  ]);
 
-  const toggleDay = (index) => {
-    const next = [...habitDays];
-    next[index] = !next[index];
-    setHabitDays(next);
-  };
-
-  const completedCount = habitDays.filter(Boolean).length;
-
-  return (
-    <div className="w-full h-full flex flex-col justify-between">
-      {size === '2x1' ? (
-        <div className="flex items-center justify-between h-full">
-          {/* Left Weather */}
-          <div className="flex flex-col justify-center">
-            <div className="flex items-center gap-2">
-              <Sun size={28} className="text-amber-300 animate-spin-slow" />
-              <span className="text-3xl font-black text-white tracking-tight">27°C</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs font-medium text-white/80 mt-1">
-              <span className="text-cyan-300 font-bold">晴空万里</span>
-              <span>· 空气优 (AQI 32)</span>
-            </div>
-          </div>
-
-          {/* Right Habit Tracker */}
-          <div className="flex flex-col items-end justify-center border-l border-white/10 pl-4">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-white mb-1.5">
-              <Flame size={14} className="text-amber-400" />
-              <span>习惯打卡 · 已坚持 {completedCount} 天</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              {days.map((d, i) => (
-                <div
-                  key={i}
-                  onClick={() => toggleDay(i)}
-                  className={`w-6 h-6 rounded-lg flex flex-col items-center justify-center text-[10px] font-bold cursor-pointer transition-all ${
-                    habitDays[i]
-                      ? 'bg-cyan-400 text-gray-950 shadow-md shadow-cyan-400/30 scale-105'
-                      : 'bg-white/10 text-white/50 hover:bg-white/20'
-                  }`}
-                  title={`点击切换 ${d} 日打卡状态`}
-                >
-                  {d}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : (
-        /* 2x2 Weather & Habit Card */
-        <div className="flex flex-col justify-between h-full">
-          <div className="flex justify-between items-start">
+  if (size === '2x1') {
+    // Exact replica of Photo 2 top right (`S M T W T F S` dot matrix + weather info)
+    return (
+      <div className="w-full h-full flex items-center justify-between select-none p-1 gap-3">
+        {/* Left side: Weather & AQI */}
+        <div className="flex flex-col justify-between h-full py-1">
+          <div className="flex items-center gap-2">
+            <Sun size={26} className="text-amber-300 shrink-0" />
             <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-white/50">本地天气与习惯</span>
-              <div className="flex items-center gap-3 mt-1">
-                <Sun size={38} className="text-amber-300" />
-                <div>
-                  <span className="text-4xl font-black text-white">27°C</span>
-                  <p className="text-xs font-bold text-cyan-300">晴天 · 适合高效学习与创造</p>
-                </div>
-              </div>
-            </div>
-            <span className="px-2.5 py-1 rounded-xl bg-white/10 border border-white/15 text-xs font-semibold text-white">
-              湿度 54%
-            </span>
-          </div>
-
-          {/* Habit Tracker Section */}
-          <div className="my-2 p-3 rounded-2xl bg-black/20 border border-white/10 flex flex-col gap-2">
-            <div className="flex items-center justify-between text-xs font-bold">
-              <div className="flex items-center gap-1.5 text-white">
-                <Award size={16} className="text-amber-400" />
-                <span>本周专注时间追踪</span>
-              </div>
-              <span className="text-cyan-300 font-extrabold">累计 15小时33分</span>
-            </div>
-
-            <div className="grid grid-cols-7 gap-1 pt-1 text-center">
-              {days.map((d, i) => (
-                <div key={i} className="flex flex-col items-center gap-1">
-                  <span className="text-[10px] text-white/50">{d}</span>
-                  <button
-                    onClick={() => toggleDay(i)}
-                    className={`w-7 h-7 rounded-full font-bold text-xs transition-all flex items-center justify-center ${
-                      habitDays[i]
-                        ? 'bg-cyan-400 text-gray-950 shadow-md shadow-cyan-400/40'
-                        : 'bg-white/10 text-white/40 hover:bg-white/20'
-                    }`}
-                  >
-                    {habitDays[i] ? '✓' : '·'}
-                  </button>
-                </div>
-              ))}
+              <span className="text-[28px] font-black text-white font-mono leading-none block">27°C</span>
+              <span className="text-[11px] text-white/80 block mt-0.5">晴空万里 · 优 AQI 32</span>
             </div>
           </div>
-
-          <div className="flex items-center justify-between text-[11px] text-white/60 font-medium">
-            <span>下周预报: 晴转多云 24~29°C</span>
-            <span className="text-cyan-300">每日 23:00 重置提示</span>
+          <div className="flex items-center gap-1.5 text-cyan-300 text-xs font-bold">
+            <Flame size={14} />
+            <span>专注打卡 · 连续 {habitStreak} 天</span>
           </div>
         </div>
-      )}
+
+        {/* Right side: S M T W T F S Dot Matrix */}
+        <div className="p-2.5 rounded-2xl bg-black/20 border border-white/10 flex flex-col justify-between shrink-0 w-[145px] h-full">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-white/80">习惯专注</span>
+            <span className="text-[10px] font-mono text-cyan-300 font-bold">99h22m</span>
+          </div>
+          
+          <div className="grid grid-cols-7 gap-1 text-center my-auto">
+            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, idx) => (
+              <span key={idx} className="text-[9px] font-mono text-white/50 block">{d}</span>
+            ))}
+            {dots.slice(0, 14).map((filled, idx) => (
+              <div
+                key={idx}
+                className={`w-2.5 h-2.5 rounded-full mx-auto ${filled ? 'bg-cyan-400 shadow-[0_0_6px_rgba(0,245,212,0.6)]' : 'bg-white/15'}`}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 2x2 shape: Full 7x4 dot calendar matrix + Weather
+  return (
+    <div className="w-full h-full flex flex-col justify-between select-none p-1">
+      <div className="flex items-center justify-between border-b border-white/15 pb-2">
+        <div className="flex items-center gap-2">
+          <Sun size={18} className="text-amber-300" />
+          <span className="text-xs font-extrabold text-white">天气与全勤专注矩阵</span>
+        </div>
+        <span className="text-xs font-mono font-bold text-cyan-300">99h22m</span>
+      </div>
+
+      <div className="grid grid-cols-7 gap-1.5 py-2 my-auto text-center">
+        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, idx) => (
+          <span key={idx} className="text-[11px] font-mono font-bold text-cyan-300">{d}</span>
+        ))}
+        {dots.map((filled, idx) => (
+          <div
+            key={idx}
+            className={`w-3.5 h-3.5 rounded-full mx-auto transition-all ${
+              filled ? 'bg-cyan-400 shadow-[0_0_8px_rgba(0,245,212,0.8)] scale-105' : 'bg-white/15 hover:bg-white/30'
+            }`}
+          />
+        ))}
+      </div>
+
+      <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs">
+        <span className="text-white/80">气温: 27°C (空气质量优)</span>
+        <span className="text-cyan-300 font-bold">坚持打卡 {habitStreak} 天 🔥</span>
+      </div>
     </div>
   );
 }

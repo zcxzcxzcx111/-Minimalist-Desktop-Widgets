@@ -1,84 +1,79 @@
-import React, { useState, useEffect } from 'react';
-import { Folder, Globe, Sparkles, Plus, ExternalLink, Command, ShieldCheck, Film, Image } from 'lucide-react';
-
-const defaultTags = [
-  { id: 1, name: '马上整理', color: '#00F5D4', text: '#0A2E28', type: 'action', desc: '整洁桌面' },
-  { id: 2, name: '不想上班', color: '#FEE440', text: '#1A1A1A', type: 'url', url: 'https://bilibili.com' },
-  { id: 3, name: '工作文档', color: '#9B5DE5', text: '#FFFFFF', type: 'url', url: 'https://docs.qq.com' },
-  { id: 4, name: '电脑壁纸', color: '#00BBF9', text: '#FFFFFF', type: 'action', desc: '图片专区' },
-  { id: 5, name: '简历精修', color: '#F15BB5', text: '#FFFFFF', type: 'action', desc: '求职备用' },
-  { id: 6, name: '重要文件', color: '#00F5D4', text: '#0A2E28', type: 'action', desc: '加密存储' },
-  { id: 7, name: '视频剪辑', color: '#FF99C8', text: '#2E0A20', type: 'action', desc: 'Premiere' },
-  { id: 8, name: 'AI学习参考', color: '#A9DEF9', text: '#0A2E28', type: 'url', url: 'https://github.com' },
-  { id: 9, name: '小红书灵感', color: '#FF4D4D', text: '#FFFFFF', type: 'url', url: 'https://xiaohongshu.com' },
-];
+import React, { useState } from 'react';
+import { Camera, FileText, Scissors, Image, Share2, Terminal, BookOpen, Sparkles, Command } from 'lucide-react';
 
 export default function LauncherWidget({ size = '2x2' }) {
-  const [tags, setTags] = useState(() => {
-    const saved = localStorage.getItem('macwidgets-launcher');
-    return saved ? JSON.parse(saved) : defaultTags;
-  });
+  const [shortcuts] = useState([
+    { id: 1, name: '拍摄', icon: Camera, desc: '相机与相册导入' },
+    { id: 2, name: '文案', icon: FileText, desc: 'Notion 文稿编辑' },
+    { id: 3, name: '剪辑', icon: Scissors, desc: 'Premiere Pro' },
+    { id: 4, name: '作图', icon: Image, desc: 'Photoshop / Figma' },
+    { id: 5, name: '公众号', icon: Share2, desc: '后台发文管理' },
+    { id: 6, name: '软件研究', icon: Terminal, desc: 'VS Code & Node' },
+    { id: 7, name: '学习参考', icon: BookOpen, desc: '小红书灵感簿' },
+    { id: 8, name: 'AI学习', icon: Sparkles, desc: 'ChatGPT & Gemini' },
+  ]);
 
-  const [activeMessage, setActiveMessage] = useState('');
-
-  const handleItemClick = (item) => {
-    if (item.url) {
-      setActiveMessage(`🌐 正在为您打开网页: ${item.name}`);
-      setTimeout(() => {
-        if (typeof window !== 'undefined' && window.require) {
-          try {
-            window.require('electron').shell.openExternal(item.url);
-          } catch {
-            window.open(item.url, '_blank');
-          }
-        } else {
-          window.open(item.url, '_blank');
-        }
-        setActiveMessage('');
-      }, 400);
-    } else {
-      setActiveMessage(`⚡ 已激活桌面指令: ${item.name}`);
-      setTimeout(() => setActiveMessage(''), 1500);
-    }
+  const handleLaunch = (item) => {
+    console.log('Launch:', item.name);
   };
 
-  return (
-    <div className="w-full h-full flex flex-col justify-between">
-      {/* Header */}
-      <div className="flex items-center justify-between pb-1.5 border-b border-white/10">
-        <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-white">
-          <Command size={15} className="text-cyan-300" />
-          <span>快捷分类 & 文件夹看板</span>
+  if (size === '2x1') {
+    return (
+      <div className="w-full h-full flex flex-col justify-between select-none p-1">
+        <div className="flex items-center justify-between border-b border-white/15 pb-2">
+          <span className="text-xs font-bold text-white flex items-center gap-1.5">
+            <Command size={14} className="text-cyan-300" /> 快捷指令方格
+          </span>
+          <span className="text-[10px] text-white/50">点击直达</span>
         </div>
-        <span className="text-[11px] text-white/50">{tags.length} 个快捷项</span>
+        <div className="grid grid-cols-4 gap-2 pt-1">
+          {shortcuts.slice(0, 4).map((s) => {
+            const Icon = s.icon;
+            return (
+              <div
+                key={s.id}
+                onClick={() => handleLaunch(s)}
+                className="py-2 rounded-xl bg-white/10 hover:bg-cyan-400 hover:text-gray-950 transition-all cursor-pointer flex flex-col items-center justify-center gap-1 shadow-sm"
+              >
+                <Icon size={16} />
+                <span className="text-[11px] font-bold">{s.name}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // Exact 1:1 replica of Photo 2 second red circle (`2x2` squircle with 8 category rounded buttons)
+  return (
+    <div className="w-full h-full flex flex-col justify-between select-none p-1">
+      <div className="flex items-center justify-between border-b border-white/15 pb-2">
+        <span className="text-xs font-bold text-white flex items-center gap-1.5">
+          <Command size={14} className="text-cyan-300" /> 快捷工作流与指令方格
+        </span>
+        <span className="text-[11px] px-2 py-0.5 rounded bg-cyan-400/20 text-cyan-300 font-bold border border-cyan-400/30">
+          8 项快启
+        </span>
       </div>
 
-      {/* Grid of tags */}
-      <div className="flex-1 overflow-y-auto my-2 pr-1 grid grid-cols-3 gap-2 items-start">
-        {tags.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => handleItemClick(item)}
-            className="flex flex-col items-center justify-center p-2.5 rounded-2xl border border-white/20 shadow-md transition-all hover:scale-105 active:scale-95 group relative overflow-hidden"
-            style={{ background: item.color, color: item.text }}
-          >
-            <span className="text-xs font-extrabold truncate max-w-full tracking-tight">
-              {item.name}
-            </span>
-            <span className="text-[10px] opacity-75 font-medium mt-0.5 truncate max-w-full">
-              {item.type === 'url' ? 'Link ↗' : item.desc || 'Folder'}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {/* Footer status bar */}
-      <div className="pt-1.5 border-t border-white/10 flex items-center justify-between text-[11px]">
-        {activeMessage ? (
-          <span className="text-cyan-300 font-bold animate-pulse truncate">{activeMessage}</span>
-        ) : (
-          <span className="text-white/60 truncate">提示: 点击小标签直达文件分类/链接</span>
-        )}
+      <div className="grid grid-cols-4 gap-2.5 my-auto pt-2">
+        {shortcuts.map((s) => {
+          const Icon = s.icon;
+          return (
+            <div
+              key={s.id}
+              onClick={() => handleLaunch(s)}
+              className="py-2.5 px-1 rounded-[16px] bg-white/10 hover:bg-cyan-400 hover:text-gray-950 transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5 shadow-sm border border-white/10"
+              title={s.desc}
+            >
+              <div className="w-8 h-8 rounded-xl bg-black/20 flex items-center justify-center">
+                <Icon size={18} />
+              </div>
+              <span className="text-[11px] font-bold truncate w-full text-center">{s.name}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

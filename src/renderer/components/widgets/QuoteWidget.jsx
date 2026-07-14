@@ -8,97 +8,90 @@ const quotesList = [
     author: "Tim Notke"
   },
   {
-    en: "Simplicity is the ultimate sophistication.",
-    zh: "至简即至繁。",
-    author: "Leonardo da Vinci / Apple"
-  },
-  {
     en: "Stay hungry, stay foolish.",
     zh: "求知若饥，虚心若愚。",
     author: "Steve Jobs"
   },
   {
-    en: "Design is not just what it looks like and feels like. Design is how it works.",
-    zh: "设计不仅仅是外观和感觉，设计是它是如何工作的。",
-    author: "Steve Jobs"
+    en: "Simplicity is the ultimate sophistication.",
+    zh: "至繁归于至简。",
+    author: "Leonardo da Vinci"
   },
   {
-    en: "Your time is limited, so don't waste it living someone else's life.",
-    zh: "你的时间是有限的，不要浪费在重复别人的生活上。",
-    author: "Steve Jobs"
-  },
-  {
-    en: "Action is the foundational key to all success.",
-    zh: "行动是通往所有成功的根本钥匙。",
-    author: "Pablo Picasso"
+    en: "The best way to predict the future is to invent it.",
+    zh: "预测未来最好的办法就是创造未来。",
+    author: "Alan Kay"
   }
 ];
 
 export default function QuoteWidget({ size = '2x1' }) {
-  const [index, setIndex] = useState(0);
+  const [idx, setIdx] = useState(0);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
-  const current = quotesList[index % quotesList.length];
+  const current = quotesList[idx];
 
   const handleNext = () => {
-    setIndex((prev) => (prev + 1) % quotesList.length);
+    setIdx((prev) => (prev + 1) % quotesList.length);
   };
 
   const handleSpeak = () => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(current.en);
-      utterance.lang = 'en-US';
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      if (isSpeaking) {
+        window.speechSynthesis.cancel();
+        setIsSpeaking(false);
+        return;
+      }
+      const utterance = new SpeechSynthesisUtterance(current.en + "。 " + current.zh);
       utterance.rate = 0.9;
-      utterance.onstart = () => setIsSpeaking(true);
       utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = () => setIsSpeaking(false);
+      setIsSpeaking(true);
       window.speechSynthesis.speak(utterance);
     }
   };
 
   return (
-    <div className="w-full h-full flex flex-col justify-between">
-      {/* Top Bar */}
-      <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-white/70">
-        <div className="flex items-center gap-1.5 text-cyan-300">
+    <div className="w-full h-full flex flex-col justify-between select-none p-1">
+      {/* Top Bar exactly like Photo 1 (`#每日一句` + audio + refresh) */}
+      <div className="flex items-center justify-between border-b border-white/15 pb-2">
+        <div className="flex items-center gap-1.5 text-cyan-300 font-extrabold text-xs">
           <QuoteIcon size={14} />
           <span>#每日一句 · Daily Inspiration</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <button
             onClick={handleSpeak}
-            className={`p-1.5 rounded-lg border transition-all ${
-              isSpeaking
-                ? 'bg-cyan-400 text-gray-950 border-cyan-400 animate-pulse'
-                : 'bg-white/10 text-white/80 border-white/15 hover:bg-white/20'
+            className={`p-1 rounded-lg border transition-all ${
+              isSpeaking ? 'bg-cyan-400 text-gray-950 border-cyan-400 live-pulse font-bold' : 'bg-white/10 text-white/80 border-white/15 hover:bg-white/20'
             }`}
-            title="朗读金句"
+            title="一键由系统朗读发声"
           >
-            <Volume2 size={14} />
+            <Volume2 size={13} />
           </button>
           <button
             onClick={handleNext}
-            className="p-1.5 rounded-lg bg-white/10 text-white/80 border border-white/15 hover:bg-white/20 hover:rotate-180 transition-all duration-300"
-            title="切换下一句"
+            className="p-1 rounded-lg bg-white/10 hover:bg-white/20 text-white/80 border border-white/15 transition-all"
+            title="换一句名言"
           >
-            <RefreshCw size={14} />
+            <RefreshCw size={13} />
           </button>
         </div>
       </div>
 
-      {/* Quote Content */}
-      <div className="my-auto py-2">
-        <p className="text-base sm:text-lg font-bold text-white tracking-tight leading-snug">
+      {/* Quote Body */}
+      <div className="my-auto py-1">
+        <p className="text-[13px] font-extrabold text-white leading-snug font-sans">
           "{current.en}"
         </p>
-        <p className="text-xs sm:text-sm text-cyan-200 mt-1 font-medium opacity-90">
+        <p className="text-xs text-cyan-300 font-medium mt-1 leading-normal">
           {current.zh}
         </p>
       </div>
 
-      {/* Footer */}
-      <div className="flex justify-end text-[11px] text-white/50 italic font-medium">
-        — {current.author}
+      {/* Author Footer */}
+      <div className="pt-1.5 border-t border-white/10 flex items-center justify-between text-[11px] text-white/50 font-mono">
+        <span>— {current.author}</span>
+        <span className="text-cyan-300/80">TTS Ready</span>
       </div>
     </div>
   );

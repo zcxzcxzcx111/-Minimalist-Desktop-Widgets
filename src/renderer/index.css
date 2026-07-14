@@ -6,7 +6,7 @@
 }
 
 body {
-  font-family: 'Inter', 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: 'SF Pro Display', 'Inter', 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   overflow: hidden;
   background: transparent;
   color: #FFFFFF;
@@ -15,8 +15,8 @@ body {
 
 /* Scrollbar styles */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
@@ -37,35 +37,36 @@ body {
   -webkit-app-region: no-drag;
 }
 
-/* Standalone Widget Island Card (高对比度、高可读性的实体感毛玻璃卡片) */
+/* Standalone Widget Island Card (1:1 纯正 Apple Squircle 连续曲率圆角与深海提尔青毛玻璃) */
 .widget-island-card {
-  padding: 18px;
+  padding: 16px;
+  border-radius: 28px; /* 1:1 Apple continuous squircle radius from photos */
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  backdrop-filter: blur(32px) saturate(180%);
-  -webkit-backdrop-filter: blur(32px) saturate(180%);
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55), inset 0 1px 1.5px rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(36px) saturate(190%);
+  -webkit-backdrop-filter: blur(36px) saturate(190%);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.55), inset 0 1.2px 1.5px rgba(255, 255, 255, 0.35);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
 }
 
 .theme-deepsea .widget-island-card {
-  background: rgba(30, 56, 68, 0.90);
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(35, 68, 78, 0.88); /* Exact Teal / Ocean blue-green from user red circles */
+  border: 1px solid rgba(255, 255, 255, 0.25);
 }
 .theme-graphite .widget-island-card {
-  background: rgba(28, 31, 36, 0.92);
+  background: rgba(28, 30, 35, 0.92);
   border: 1px solid rgba(255, 255, 255, 0.18);
 }
 .theme-glass .widget-island-card {
-  background: rgba(245, 245, 247, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(246, 246, 248, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.65);
   color: #1A1A1A;
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.25), inset 0 1px 2px rgba(255, 255, 255, 0.8);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.25), inset 0 1px 2px rgba(255, 255, 255, 0.8);
 }
 
 .widget-island-card:hover {
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.65), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+  box-shadow: 0 20px 54px rgba(0, 0, 0, 0.65), inset 0 1.2px 2px rgba(255, 255, 255, 0.45);
 }
 
 /* Floating Actions Pill inside Standalone Widget */
@@ -92,8 +93,8 @@ body {
   width: 22px;
   height: 22px;
   border-radius: 6px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -110,7 +111,7 @@ body {
   height: 24px;
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   color: #FFFFFF;
   display: flex;
   align-items: center;
@@ -119,16 +120,17 @@ body {
   transition: all 0.15s ease;
 }
 .tool-pill-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.35);
   transform: scale(1.1);
 }
 
-/* Clock Widget Styles */
-.clock-time {
-  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
-  font-weight: 700;
-  letter-spacing: 2px;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+/* Apple Display Font for Big Digits */
+.clock-display-digits {
+  font-family: 'SF Pro Display', 'DIN Alternate', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 800;
+  letter-spacing: 5px;
+  line-height: 1;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.4);
 }
 
 /* Todo Checkbox */
@@ -170,13 +172,4 @@ body {
   line-height: 1.6;
   resize: none;
   font-family: inherit;
-}
-
-/* Pulse animation */
-@keyframes pulseGlow {
-  0%, 100% { opacity: 0.85; filter: drop-shadow(0 0 6px rgba(0, 245, 212, 0.4)); }
-  50% { opacity: 1; filter: drop-shadow(0 0 12px rgba(0, 245, 212, 0.8)); }
-}
-.live-pulse {
-  animation: pulseGlow 3s infinite ease-in-out;
 }
