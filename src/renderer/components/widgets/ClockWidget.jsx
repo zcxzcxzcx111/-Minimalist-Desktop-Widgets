@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getLunarDate } from '../../utils/lunar';
+import { getLunarDate } from '../../../utils/lunar';
 import { Clock, Calendar } from 'lucide-react';
 
 export default function ClockWidget({ size = '2x1' }) {
