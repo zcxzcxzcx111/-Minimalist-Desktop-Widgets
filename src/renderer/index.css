@@ -15,8 +15,8 @@ body {
 
 /* Scrollbar styles */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
@@ -29,166 +29,96 @@ body {
   background: rgba(255, 255, 255, 0.4);
 }
 
-/* App Main Canvas / Container */
-.app-container {
-  width: 100vw;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  overflow: hidden;
-}
-
-/* Theme: Deep Sea Teal (Mac Screenshot 1 style) */
-.app-container.theme-deepsea .dashboard-board {
-  background: rgba(38, 70, 83, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.25);
-}
-.app-container.theme-deepsea .widget-card {
-  background: rgba(38, 70, 83, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-/* Theme: Dark Graphite (Mac Screenshot 2 style) */
-.app-container.theme-graphite .dashboard-board {
-  background: rgba(28, 30, 34, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45), inset 0 1px 2px rgba(255, 255, 255, 0.15);
-}
-.app-container.theme-graphite .widget-card {
-  background: rgba(35, 38, 44, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-}
-
-/* Theme: Frosted Glass White (Light Apple style) */
-.app-container.theme-glass .dashboard-board {
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25), inset 0 1px 2px rgba(255, 255, 255, 0.4);
-}
-.app-container.theme-glass .widget-card {
-  background: rgba(255, 255, 255, 0.18);
-  border: 1px solid rgba(255, 255, 255, 0.32);
-}
-
-/* Header / Control Bar */
-.control-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 24px;
-  background: rgba(20, 24, 28, 0.75);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  z-index: 1000;
-  border-radius: 16px 16px 0 0;
-  transition: all 0.3s ease;
+/* Drag & No-Drag Regions for Electron */
+.drag-area {
   -webkit-app-region: drag;
 }
-
-.control-bar button, .control-bar .no-drag {
+.no-drag-area, button, input, textarea, a, .tool-pill-btn {
   -webkit-app-region: no-drag;
 }
 
-/* Dashboard Board Canvas vs Floating Canvas */
-.canvas-wrapper {
-  flex: 1;
-  position: relative;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 24px;
-}
-
-/* Dashboard Board Mode Container */
-.dashboard-board {
-  width: 100%;
-  min-height: calc(100vh - 110px);
+/* Hub Window Background & Themes */
+.hub-window-bg {
   border-radius: 28px;
-  padding: 28px;
-  backdrop-filter: blur(32px) saturate(180%);
-  -webkit-backdrop-filter: blur(32px) saturate(180%);
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  grid-auto-rows: 160px;
-  gap: 20px;
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5), inset 0 1px 2px rgba(255, 255, 255, 0.2);
+  transition: background-color 0.4s ease;
 }
 
-/* Floating Mode: Grid container disappears, widgets float freely */
-.floating-canvas {
-  width: 100%;
-  height: 100%;
-  position: relative;
+.theme-deepsea .hub-window-bg {
+  background: rgba(30, 55, 65, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+.theme-graphite .hub-window-bg {
+  background: rgba(26, 28, 32, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+.theme-glass .hub-window-bg {
+  background: rgba(240, 240, 245, 0.92);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  color: #1A1A1A;
 }
 
-/* Widget Card Base */
-.widget-card {
-  border-radius: 24px;
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.22);
-  padding: 20px;
-  position: relative;
+/* Standalone Widget Island Card */
+.widget-island-card {
+  padding: 18px;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.3), inset 0 1px 1.5px rgba(255, 255, 255, 0.25);
   display: flex;
   flex-direction: column;
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
-  overflow: hidden;
+  justify-content: space-between;
 }
 
-.widget-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.3);
+.theme-deepsea .widget-island-card {
+  background: rgba(38, 70, 83, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.theme-graphite .widget-island-card {
+  background: rgba(32, 35, 40, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+.theme-glass .widget-island-card {
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #1A1A1A;
 }
 
-/* Widget Grid Sizes */
-.widget-size-1x1 { grid-column: span 1; grid-row: span 1; width: 160px; height: 160px; }
-.widget-size-2x1 { grid-column: span 2; grid-row: span 1; width: 340px; height: 160px; }
-.widget-size-2x2 { grid-column: span 2; grid-row: span 2; width: 340px; height: 340px; }
-.widget-size-4x2 { grid-column: span 4; grid-row: span 2; width: 700px; height: 340px; }
-.widget-size-4x1 { grid-column: span 4; grid-row: span 1; width: 700px; height: 160px; }
-.widget-size-2x3 { grid-column: span 2; grid-row: span 3; width: 340px; height: 520px; }
-
-/* In Floating Mode, dimensions are exact absolute boxes */
-.floating-canvas .widget-card {
-  position: absolute;
-  cursor: grab;
-}
-.floating-canvas .widget-card:active {
-  cursor: grabbing;
+.widget-island-card:hover {
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.35);
 }
 
-/* Widget Header & Tools (Hover revealed) */
-.widget-hover-tools {
+/* Floating Actions Pill inside Standalone Widget */
+.widget-floating-actions {
   position: absolute;
   top: 10px;
   right: 10px;
   display: flex;
-  gap: 6px;
+  gap: 5px;
   opacity: 0;
-  transition: opacity 0.2s ease;
-  z-index: 20;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  transform: translateY(-4px);
+  z-index: 50;
 }
-.widget-card:hover .widget-hover-tools {
+.widget-island-card:hover .widget-floating-actions {
   opacity: 1;
+  transform: translateY(0);
 }
 
-.tool-icon-btn {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.45);
+.tool-pill-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #fff;
+  color: #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.15s ease;
 }
-.tool-icon-btn:hover {
+.tool-pill-btn:hover {
   background: rgba(255, 255, 255, 0.25);
   transform: scale(1.1);
 }
@@ -201,7 +131,7 @@ body {
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
 }
 
-/* Todo Widget Styles */
+/* Todo Checkbox */
 .todo-checkbox {
   appearance: none;
   width: 18px;
@@ -228,11 +158,6 @@ body {
   font-weight: bold;
 }
 
-.todo-item-text.completed {
-  text-decoration: line-through;
-  opacity: 0.5;
-}
-
 /* Sticky Note Styles */
 .note-textarea {
   width: 100%;
@@ -247,26 +172,7 @@ body {
   font-family: inherit;
 }
 
-/* Modal Overlay */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-  animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-/* Pulse animation for battery ring / live indicator */
+/* Pulse animation */
 @keyframes pulseGlow {
   0%, 100% { opacity: 0.85; filter: drop-shadow(0 0 6px rgba(0, 245, 212, 0.4)); }
   50% { opacity: 1; filter: drop-shadow(0 0 12px rgba(0, 245, 212, 0.8)); }
