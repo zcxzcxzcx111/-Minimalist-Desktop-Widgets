@@ -1,0 +1,32 @@
+{
+  "name": "mac-widgets-windows",
+  "version": "1.0.0",
+  "description": "Mac-style Desktop Widgets for Windows (Sonoma / Sequoia UI Replica)",
+  "main": "src/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "electron": "electron .",
+    "start": "node scripts/dev-runner.js"
+  },
+  "keywords": [
+    "mac-widgets",
+    "electron",
+    "vite",
+    "react",
+    "windows-desktop"
+  ],
+  "author": "Antigravity",
+  "license": "MIT",
+  "dependencies": {
+    "lucide-react": "^1.16.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "electron": "^31.3.1",
+    "vite": "^5.4.1"
+  }
+}
