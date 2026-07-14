@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Maximize2, Pin, Palette, X, Clock, Battery, ListTodo, StickyNote, Quote, Command, Sun, Sparkles, LayoutGrid, Check } from 'lucide-react';
+import { Plus, Trash2, Maximize2, Pin, Palette, X, Clock, Battery, ListTodo, StickyNote, Quote, Command, Sun, Sparkles, LayoutGrid, Check, Lock, Unlock, Settings, Layers, Eye } from 'lucide-react';
 import ClockWidget from './components/widgets/ClockWidget';
 import BatteryWidget from './components/widgets/BatteryWidget';
 import TodoWidget from './components/widgets/TodoWidget';
@@ -13,15 +13,15 @@ const availableWidgets = [
     type: 'clock',
     name: '时钟与农历日历',
     icon: Clock,
-    desc: '大数字时钟 + 中国农历节气 + 周日历小圆点点亮',
+    desc: '大号精准时钟 + 中国农历节气（如：六月初九）+ 周历点亮',
     sizes: ['2x1', '2x2'],
     defaultSize: '2x1'
   },
   {
     type: 'battery',
-    name: '设备电量环形表盘',
+    name: '电量与续航仪表盘',
     icon: Battery,
-    desc: 'Apple 经典深色仪表盘，实时监测主机电量与续航状态',
+    desc: 'Apple 经典环形电量进度表，实时监测主机电量与周边设备状态',
     sizes: ['1x1', '2x2'],
     defaultSize: '2x2'
   },
@@ -29,39 +29,39 @@ const availableWidgets = [
     type: 'todo',
     name: '每日待办清单 (Todo)',
     icon: ListTodo,
-    desc: '在桌面上勾选完成、实时划去消减、回车快速新增任务',
+    desc: '在桌面上点击勾选划去消减、回车快速新增任务、支持持久保存',
     sizes: ['2x2', '4x2'],
     defaultSize: '2x2'
   },
   {
     type: 'note',
-    name: '快捷记事便签薄',
+    name: '桌面便签薄',
     icon: StickyNote,
-    desc: '黄/青/粉/蓝等多色调色盘，打字即时自动持久化保存',
+    desc: '黄/青/粉/蓝等经典调色盘，点击即可直接打字记事并实时保存',
     sizes: ['2x2', '2x3'],
     defaultSize: '2x2'
   },
   {
     type: 'quote',
-    name: '每日金句与语音朗读',
+    name: '金句与语音合成朗读',
     icon: Quote,
-    desc: '#每日一句名言警句，中英双语，支持一键朗读语音与切换',
+    desc: '#每日一句灵感名言，中英对照，一键由系统朗读发声并随机刷新',
     sizes: ['2x1', '4x1'],
     defaultSize: '2x1'
   },
   {
     type: 'launcher',
-    name: '快捷分类与指令池',
+    name: '快捷书签与分类标签',
     icon: Command,
-    desc: '高辨识度彩色书签小标签，直达网址或工作流目录',
+    desc: '高辨识度苹果风彩色圆角小块，点击直达常用网页或本地工具池',
     sizes: ['2x2', '4x2'],
     defaultSize: '2x2'
   },
   {
     type: 'weather',
-    name: '气温天气与习惯打卡',
+    name: '天气与习惯专注打卡',
     icon: Sun,
-    desc: '本地气温与空气质量 + 7日习惯打卡矩阵 (S M T W T F S)',
+    desc: '当地气温与空气质量 (AQI) + 周日一二三四五六 7日习惯打卡矩阵',
     sizes: ['2x1', '2x2'],
     defaultSize: '2x1'
   }
@@ -73,6 +73,7 @@ export default function App() {
   const widgetId = params.get('id');
   const initialType = params.get('type') || 'clock';
   const initialSize = params.get('size') || '2x1';
+  const initialLocked = params.get('locked') === 'true';
 
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('macwidgets-theme') || 'deepsea';
@@ -90,17 +91,19 @@ export default function App() {
   if (mode === 'hub') {
     return <ControlHub theme={theme} setTheme={setTheme} />;
   } else {
-    return <StandaloneWidget id={widgetId} type={initialType} initialSize={initialSize} theme={theme} />;
+    return <StandaloneWidget id={widgetId} type={initialType} initialSize={initialSize} initialLocked={initialLocked} theme={theme} />;
   }
 }
 
 /* ========================================================
-   1. Control Hub Window (MacWidgets 控制与组件仓库中心)
+   1. Control Hub / Settings Window (设置页面：必须是完全正常、清晰高对比的实体窗口)
    ======================================================== */
 function ControlHub({ theme, setTheme }) {
+  const [activeTab, setActiveTab] = useState('gallery'); // 'gallery' | 'manage'
   const [activeWidgets, setActiveWidgets] = useState([]);
   const [selectedWidget, setSelectedWidget] = useState(availableWidgets[0]);
   const [selectedSize, setSelectedSize] = useState(availableWidgets[0].defaultSize);
+  const [isLocked, setIsLocked] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.require) {
@@ -108,9 +111,15 @@ function ControlHub({ theme, setTheme }) {
       ipcRenderer.invoke('get-widgets-config').then((data) => {
         if (data) setActiveWidgets(data);
       });
+      ipcRenderer.invoke('get-lock-status').then((locked) => {
+        setIsLocked(locked);
+      });
 
       ipcRenderer.on('config-updated', (event, updated) => {
         setActiveWidgets(updated);
+      });
+      ipcRenderer.on('lock-changed', (event, locked) => {
+        setIsLocked(locked);
       });
     }
   }, []);
@@ -134,10 +143,26 @@ function ControlHub({ theme, setTheme }) {
     }
   };
 
+  const handleFocusWidget = (id) => {
+    if (typeof window !== 'undefined' && window.require) {
+      const { ipcRenderer } = window.require('electron');
+      ipcRenderer.send('focus-widget', id);
+    }
+  };
+
   const handleToggleTop = (id) => {
     if (typeof window !== 'undefined' && window.require) {
       const { ipcRenderer } = window.require('electron');
       ipcRenderer.send('toggle-widget-top', { id });
+    }
+  };
+
+  const handleToggleGlobalLock = () => {
+    const targetState = !isLocked;
+    setIsLocked(targetState);
+    if (typeof window !== 'undefined' && window.require) {
+      const { ipcRenderer } = window.require('electron');
+      ipcRenderer.send('toggle-global-lock', targetState);
     }
   };
 
@@ -151,76 +176,57 @@ function ControlHub({ theme, setTheme }) {
   };
 
   const themesList = [
-    { id: 'deepsea', name: '青蓝深海', color: '#264653' },
-    { id: 'graphite', name: '黑晶石墨', color: '#23262C' },
-    { id: 'glass', name: '通透白霜', color: '#E5E5E7' }
+    { id: 'deepsea', name: '青蓝深海 (Teal Glass)', color: '#264653' },
+    { id: 'graphite', name: '黑晶暗夜 (Dark Graphite)', color: '#23262C' },
+    { id: 'glass', name: '通透晨霜 (Frosted Light)', color: '#E5E5E7' }
   ];
 
-  const handleCloseHub = () => {
-    if (typeof window !== 'undefined' && window.require) {
-      const { ipcRenderer } = window.require('electron');
-      ipcRenderer.send('close-hub');
-    }
-  };
-
   return (
-    <div className={`w-full h-full p-4 flex flex-col justify-between select-none overflow-hidden theme-${theme} hub-window-bg`}>
-      {/* Top Header Bar */}
-      <div className="flex items-center justify-between pb-3.5 mb-3 border-b border-white/15 no-drag-area">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-cyan-400 flex items-center justify-center text-gray-950 font-black shadow-lg shadow-cyan-400/40">
-            M
+    <div className="w-full h-full bg-[#1C1C1E] text-white flex flex-col justify-between select-none font-sans overflow-hidden border-t border-white/10">
+      {/* Top Navigation / Tab Header */}
+      <div className="px-6 py-4 bg-[#252529] border-b border-white/10 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-gray-950 font-black text-lg shadow-md shadow-cyan-500/20">
+            
           </div>
           <div>
             <h1 className="text-base font-extrabold text-white tracking-tight flex items-center gap-2">
-              <span>MacWidgets 控制台</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-300 font-bold border border-cyan-400/30">
-                独立多窗口架构
+              <span>MacWidgets 小组件设置中心</span>
+              <span className="text-[11px] px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30">
+                100% 独立多模块架构
               </span>
             </h1>
-            <p className="text-[11px] text-white/60">每一个小组件都是桌面上真正独立的透明悬浮窗口，可自由拖到任何角落</p>
+            <p className="text-xs text-white/60">正常实体窗口设置，彻底告别背景透明叠加 · 小组件独立固定于桌面</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* Theme Selector */}
-          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-black/40 border border-white/10">
-            <Palette size={14} className="text-white/60 ml-1.5" />
-            {themesList.map(t => (
-              <button
-                key={t.id}
-                onClick={() => handleThemeChange(t.id)}
-                className={`w-5 h-5 rounded-lg border transition-all ${
-                  theme === t.id ? 'scale-110 border-cyan-300 shadow-md ring-2 ring-cyan-300/50' : 'border-white/20 opacity-65 hover:opacity-100'
-                }`}
-                style={{ background: t.color }}
-                title={t.name}
-              />
-            ))}
-          </div>
-
+        {/* Tab Switcher */}
+        <div className="flex bg-black/40 p-1 rounded-xl border border-white/10">
           <button
-            onClick={handleCloseHub}
-            className="w-8 h-8 rounded-xl bg-white/10 hover:bg-red-500 hover:text-white text-white/80 transition-all flex items-center justify-center"
-            title="关闭控制中心 (小组件依然会在桌面运行)"
+            onClick={() => setActiveTab('gallery')}
+            className={`px-4 py-1.5 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition-all ${
+              activeTab === 'gallery' ? 'bg-cyan-400 text-gray-950 shadow-sm' : 'text-white/70 hover:text-white'
+            }`}
           >
-            <X size={16} />
+            <Sparkles size={14} /> 组件仓库 (添加)
+          </button>
+          <button
+            onClick={() => setActiveTab('manage')}
+            className={`px-4 py-1.5 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition-all ${
+              activeTab === 'manage' ? 'bg-cyan-400 text-gray-950 shadow-sm' : 'text-white/70 hover:text-white'
+            }`}
+          >
+            <Layers size={14} /> 桌面布局与锁定 ({activeWidgets.length})
           </button>
         </div>
       </div>
 
-      {/* Main Body Split: Left Gallery vs Right Active & Config */}
-      <div className="flex-1 overflow-hidden grid grid-cols-12 gap-4">
-        {/* Left Section: Add New Widget Cards (Cols 1-7) */}
-        <div className="col-span-7 flex flex-col justify-between overflow-hidden pr-2 border-r border-white/10">
-          <div>
-            <div className="flex items-center justify-between mb-2.5">
-              <span className="text-xs font-bold uppercase tracking-wider text-cyan-300 flex items-center gap-1">
-                <Sparkles size={14} /> 组件类型库 · 点击挑选
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2.5 max-h-[310px] overflow-y-auto pr-1">
+      {/* Main Content Area */}
+      <div className="flex-1 overflow-hidden p-6">
+        {activeTab === 'gallery' ? (
+          /* TAB 1: Widget Gallery Grid */
+          <div className="h-full flex flex-col justify-between">
+            <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-2 gap-4">
               {availableWidgets.map(w => {
                 const Icon = w.icon;
                 const isSelected = selectedWidget.type === w.type;
@@ -228,128 +234,199 @@ function ControlHub({ theme, setTheme }) {
                   <div
                     key={w.type}
                     onClick={() => handleSelectType(w)}
-                    className={`p-3 rounded-2xl cursor-pointer border transition-all flex flex-col justify-between ${
+                    className={`p-4 rounded-2xl cursor-pointer border transition-all flex flex-col justify-between ${
                       isSelected
-                        ? 'bg-cyan-500/20 border-cyan-400 text-white shadow-lg shadow-cyan-500/20 scale-[1.02]'
-                        : 'bg-white/5 border-white/10 text-white/80 hover:bg-white/10'
+                        ? 'bg-gradient-to-br from-cyan-500/20 to-blue-500/10 border-cyan-400 shadow-lg shadow-cyan-500/10 scale-[1.01]'
+                        : 'bg-[#2C2C30] border-white/10 hover:bg-[#343438]'
                     }`}
                   >
-                    <div className="flex items-center gap-2.5 mb-2">
-                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${isSelected ? 'bg-cyan-400 text-gray-950 font-bold' : 'bg-white/10 text-white'}`}>
-                        <Icon size={18} />
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isSelected ? 'bg-cyan-400 text-gray-950 font-extrabold shadow-md' : 'bg-white/10 text-white'}`}>
+                          <Icon size={20} />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-extrabold text-white">{w.name}</h3>
+                          <span className="text-[11px] text-cyan-300/80 font-mono">支持规格: {w.sizes.join(', ')}</span>
+                        </div>
                       </div>
-                      <h3 className="text-xs font-bold truncate">{w.name}</h3>
+                      {isSelected && <Check size={18} className="text-cyan-400" />}
                     </div>
-                    <p className="text-[11px] text-white/60 leading-normal line-clamp-2">{w.desc}</p>
+                    <p className="text-xs text-white/70 leading-relaxed">{w.desc}</p>
                   </div>
                 );
               })}
             </div>
-          </div>
 
-          {/* Selected Widget Size Selector & Add Button */}
-          <div className="p-3 rounded-2xl bg-black/30 border border-white/10 mt-2">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-white">选择尺寸 ({selectedWidget.name})</span>
-              <div className="flex gap-1.5">
-                {selectedWidget.sizes.map(size => (
-                  <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
-                    className={`px-3 py-1 rounded-lg text-xs font-extrabold border transition-all ${
-                      selectedSize === size
-                        ? 'bg-cyan-400 text-gray-950 border-cyan-400 shadow-sm'
-                        : 'bg-white/10 text-white/80 border-white/15 hover:bg-white/20'
-                    }`}
-                  >
-                    {size}
-                  </button>
-                ))}
+            {/* Bottom Add Bar for Gallery */}
+            <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between bg-[#252529] p-4 rounded-2xl">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-bold text-white">已选组件: <span className="text-cyan-300">{selectedWidget.name}</span></span>
+                <span className="text-xs text-white/50">请挑选卡片尺寸:</span>
+                <div className="flex gap-2">
+                  {selectedWidget.sizes.map(size => (
+                    <button
+                      key={size}
+                      onClick={() => setSelectedSize(size)}
+                      className={`px-3.5 py-1.5 rounded-lg text-xs font-black border transition-all ${
+                        selectedSize === size
+                          ? 'bg-cyan-400 text-gray-950 border-cyan-400 shadow-md'
+                          : 'bg-black/30 text-white/80 border-white/15 hover:bg-black/50'
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                onClick={handleAddWidget}
+                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-400 to-teal-400 text-gray-950 font-black text-sm shadow-lg shadow-cyan-400/30 hover:scale-[1.02] active:scale-98 transition-all flex items-center gap-2"
+              >
+                <Plus size={18} strokeWidth={3} />
+                <span>立即放置此模块到桌面</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* TAB 2: Desktop Layout & Settings Manager */
+          <div className="h-full flex flex-col justify-between overflow-hidden">
+            <div className="space-y-6 overflow-y-auto pr-2">
+              {/* Desktop Lock Section (Core Logic) */}
+              <div className={`p-5 rounded-2xl border transition-all flex items-center justify-between ${
+                isLocked ? 'bg-cyan-500/15 border-cyan-400/60 shadow-lg shadow-cyan-500/10' : 'bg-[#2C2C30] border-white/10'
+              }`}>
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isLocked ? 'bg-cyan-400 text-gray-950' : 'bg-white/10 text-white'}`}>
+                    {isLocked ? <Lock size={24} /> : <Unlock size={24} />}
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+                      <span>{isLocked ? '🔒 所有小组件已锁定在桌面底层 (防误触保护中)' : '🔓 桌面小组件布局未锁定 (可自由拖放)'}</span>
+                      {isLocked && <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-400 text-gray-950 font-black">极致苹果逻辑</span>}
+                    </h3>
+                    <p className="text-xs text-white/70 mt-1 leading-normal">
+                      {isLocked
+                        ? '当你调整好各个模块的位置后开启锁定，卡片将如苹果小组件一样牢牢固定于壁纸底层，双击鼠标或打字均不会发生移动！'
+                        : '当前为可调布局状态，鼠标在桌面上直接按住任何卡片的边缘或背景即可随心拖动排布。排好后建议点击右侧开启锁定！'}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleToggleGlobalLock}
+                  className={`px-5 py-3 rounded-xl font-black text-xs transition-all flex items-center gap-2 shadow-md ${
+                    isLocked
+                      ? 'bg-white/15 text-white hover:bg-white/25 border border-white/20'
+                      : 'bg-cyan-400 text-gray-950 hover:bg-cyan-300'
+                  }`}
+                >
+                  {isLocked ? <Unlock size={16} /> : <Lock size={16} />}
+                  <span>{isLocked ? '点击解锁 (调整位置)' : '点击锁定所有模块位置'}</span>
+                </button>
+              </div>
+
+              {/* Theme Selector Section */}
+              <div className="p-5 rounded-2xl bg-[#2C2C30] border border-white/10 flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+                    <Palette size={16} className="text-cyan-300" />
+                    <span>全局卡片毛玻璃质感与配色主题</span>
+                  </h3>
+                  <p className="text-xs text-white/60 mt-1">改变所有桌面模块的磨砂透明背景与主题色标</p>
+                </div>
+                <div className="flex gap-3">
+                  {themesList.map(t => (
+                    <button
+                      key={t.id}
+                      onClick={() => handleThemeChange(t.id)}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-2 ${
+                        theme === t.id ? 'border-cyan-400 bg-black/40 text-cyan-300 shadow-md ring-2 ring-cyan-400/30' : 'border-white/15 bg-black/20 text-white/70 hover:opacity-100'
+                      }`}
+                    >
+                      <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ background: t.color }} />
+                      <span>{t.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Active Widgets List Table */}
+              <div>
+                <h3 className="text-sm font-extrabold text-white mb-3 flex items-center gap-2">
+                  <LayoutGrid size={16} className="text-cyan-300" />
+                  <span>已放置在桌面的独立模块卡片清单 ({activeWidgets.length})</span>
+                </h3>
+                <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
+                  {activeWidgets.map(w => {
+                    const wInfo = availableWidgets.find(a => a.type === w.type) || { name: w.type };
+                    return (
+                      <div
+                        key={w.id}
+                        className="p-3 rounded-xl bg-[#252529] border border-white/10 flex items-center justify-between hover:bg-[#2F2F34] transition-all"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-extrabold text-white">{wInfo.name}</span>
+                          <span className="text-[11px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono font-bold">
+                            {w.size}
+                          </span>
+                          <span className="text-[11px] text-white/50 font-mono">
+                            (屏幕坐标 X: {Math.round(w.x)}, Y: {Math.round(w.y)})
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleFocusWidget(w.id)}
+                            className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs text-white/90 transition-all flex items-center gap-1 font-bold"
+                            title="聚焦定位该卡片"
+                          >
+                            <Eye size={13} /> 定位卡片
+                          </button>
+                          <button
+                            onClick={() => handleToggleTop(w.id)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 ${
+                              w.alwaysOnTop ? 'bg-amber-400 text-gray-950 border-amber-400' : 'bg-white/10 text-white/70 border-white/10 hover:text-white'
+                            }`}
+                            title={w.alwaysOnTop ? '当前已开启置顶' : '点击将该模块置顶'}
+                          >
+                            <Pin size={13} /> {w.alwaysOnTop ? '已置顶' : '置顶层'}
+                          </button>
+                          <button
+                            onClick={() => handleRemoveWidget(w.id)}
+                            className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500 text-red-300 hover:text-white transition-all ml-2"
+                            title="从桌面上移除此模块"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
-            <button
-              onClick={handleAddWidget}
-              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-400 to-teal-400 text-gray-950 font-black text-xs shadow-lg shadow-cyan-400/30 hover:scale-[1.01] active:scale-98 transition-all flex items-center justify-center gap-1.5"
-            >
-              <Plus size={16} strokeWidth={3} />
-              <span>一键添置独立窗口到桌面</span>
-            </button>
+            {/* Bottom Status note */}
+            <div className="pt-3 mt-3 border-t border-white/10 text-xs text-white/50 flex items-center justify-between">
+              <span>💡 小提示: 右键任务栏或托盘图标同样可以秒开/解锁卡片位置</span>
+              <span className="text-cyan-300/80 font-mono">MacWidgets v2.0 · Solid Opaque Settings Engine</span>
+            </div>
           </div>
-        </div>
-
-        {/* Right Section: Active Widgets Manager (Cols 8-12) */}
-        <div className="col-span-5 flex flex-col justify-between overflow-hidden pl-1">
-          <div className="flex items-center justify-between mb-2.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-white/80 flex items-center gap-1">
-              <LayoutGrid size={14} className="text-cyan-300" /> 当前已放桌面 ({activeWidgets.length})
-            </span>
-          </div>
-
-          <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-            {activeWidgets.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-white/40 text-xs gap-2">
-                <span>当前桌面无卡片，快左侧一键添加吧！</span>
-              </div>
-            ) : (
-              activeWidgets.map((w, idx) => {
-                const wInfo = availableWidgets.find(a => a.type === w.type) || { name: w.type };
-                return (
-                  <div
-                    key={w.id}
-                    className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
-                  >
-                    <div className="overflow-hidden pr-2">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-bold text-white truncate">{wInfo.name}</span>
-                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-mono">
-                          {w.size}
-                        </span>
-                      </div>
-                      <span className="text-[10px] text-white/40 block mt-0.5">
-                        坐标: X:{Math.round(w.x)} Y:{Math.round(w.y)}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => handleToggleTop(w.id)}
-                        className={`p-1.5 rounded-lg border transition-all ${
-                          w.alwaysOnTop ? 'bg-amber-400 text-gray-950 border-amber-400 font-bold' : 'bg-white/10 text-white/50 border-white/10 hover:text-white'
-                        }`}
-                        title={w.alwaysOnTop ? '当前处于置顶层' : '点击将该卡片置顶在所有应用最上面'}
-                      >
-                        <Pin size={13} />
-                      </button>
-                      <button
-                        onClick={() => handleRemoveWidget(w.id)}
-                        className="p-1.5 rounded-lg bg-white/10 hover:bg-red-500 hover:text-white text-white/60 transition-all"
-                        title="从桌面移除该卡片"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          <div className="pt-2 mt-2 border-t border-white/10 text-[10px] text-white/50 text-center">
-            💡 提示: 双击任务栏/系统托盘图标即可随时呼出本控制后台
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
 }
 
 /* ========================================================
-   2. Standalone Individual Widget Window (真正独立的桌面小窗口)
+   2. Standalone Individual Widget Window (真正的单模块桌面小组件)
    ======================================================== */
-function StandaloneWidget({ id, type, initialSize, theme }) {
+function StandaloneWidget({ id, type, initialSize, initialLocked, theme }) {
   const [size, setSize] = useState(initialSize);
   const [isTop, setIsTop] = useState(false);
+  const [isLocked, setIsLocked] = useState(initialLocked);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.require) {
@@ -359,6 +436,9 @@ function StandaloneWidget({ id, type, initialSize, theme }) {
       });
       ipcRenderer.on('top-changed', (event, topFlag) => {
         setIsTop(topFlag);
+      });
+      ipcRenderer.on('lock-changed', (event, lockedFlag) => {
+        setIsLocked(lockedFlag);
       });
     }
   }, []);
@@ -408,31 +488,40 @@ function StandaloneWidget({ id, type, initialSize, theme }) {
 
   return (
     <div className={`w-screen h-screen p-1.5 overflow-hidden select-none theme-${theme}`}>
-      <div className="w-full h-full rounded-[24px] widget-island-card relative flex flex-col justify-between overflow-hidden drag-area">
-        {/* Top-right floating controls (visible on card hover, non-draggable) */}
-        <div className="widget-floating-actions no-drag-area">
-          <button
-            onClick={handleToggleTop}
-            className={`tool-pill-btn ${isTop ? 'bg-amber-400 text-gray-950 font-bold' : ''}`}
-            title={isTop ? '当前已置顶在所有窗口最前面 (点击取消)' : '点击置顶该卡片'}
-          >
-            <Pin size={11} />
-          </button>
-          <button
-            onClick={handleToggleSize}
-            className="tool-pill-btn"
-            title="切换规格大小 (2x1 <-> 2x2)"
-          >
-            <Maximize2 size={11} />
-          </button>
-          <button
-            onClick={handleClose}
-            className="tool-pill-btn hover:bg-red-500 hover:text-white"
-            title="关闭此组件"
-          >
-            <X size={11} />
-          </button>
-        </div>
+      <div className={`w-full h-full rounded-[22px] widget-island-card relative flex flex-col justify-between overflow-hidden ${isLocked ? 'no-drag-area cursor-default' : 'drag-area cursor-move'}`}>
+        {/* Top-right floating controls (only active/visible when NOT locked or on hover) */}
+        {!isLocked && (
+          <div className="widget-floating-actions no-drag-area">
+            <button
+              onClick={handleToggleTop}
+              className={`tool-pill-btn ${isTop ? 'bg-amber-400 text-gray-950 font-bold' : ''}`}
+              title={isTop ? '当前已置顶于最前面' : '点击置顶该卡片'}
+            >
+              <Pin size={11} />
+            </button>
+            <button
+              onClick={handleToggleSize}
+              className="tool-pill-btn"
+              title="切换规格大小"
+            >
+              <Maximize2 size={11} />
+            </button>
+            <button
+              onClick={handleClose}
+              className="tool-pill-btn hover:bg-red-500 hover:text-white"
+              title="关闭此组件"
+            >
+              <X size={11} />
+            </button>
+          </div>
+        )}
+
+        {/* Locked status badge when hovered if locked */}
+        {isLocked && (
+          <div className="widget-locked-badge no-drag-area">
+            <Lock size={10} className="text-cyan-300" />
+          </div>
+        )}
 
         {/* Widget Content Body */}
         <div className="w-full h-full no-drag-area">

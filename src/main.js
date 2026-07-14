@@ -2,15 +2,36 @@ const { app, BrowserWindow, ipcMain, screen, Tray, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
-// Store active widget windows: map id -> BrowserWindow
+// Map widget id -> BrowserWindow
 const activeWindows = new Map();
 let hubWindow = null;
 let tray = null;
+let globalLocked = false;
 
 // Config path for persistent storage
 const getConfigPath = () => {
   return path.join(app.getPath('userData'), 'macwidgets-multi-config.json');
 };
+
+const getGlobalLockPath = () => {
+  return path.join(app.getPath('userData'), 'macwidgets-lock-status.json');
+};
+
+function loadGlobalLock() {
+  if (fs.existsSync(getGlobalLockPath())) {
+    try {
+      const data = JSON.parse(fs.readFileSync(getGlobalLockPath(), 'utf8'));
+      return !!data.locked;
+    } catch (e) {}
+  }
+  return false;
+}
+
+function saveGlobalLock(locked) {
+  try {
+    fs.writeFileSync(getGlobalLockPath(), JSON.stringify({ locked }), 'utf8');
+  } catch (e) {}
+}
 
 // Default initial widgets if none exist yet
 const defaultWidgets = [
@@ -45,17 +66,17 @@ function saveWidgetsConfig(widgetsList) {
 
 function getDimensionsForSize(size) {
   switch (size) {
-    case '1x1': return { width: 174, height: 174 };
-    case '2x1': return { width: 364, height: 174 };
-    case '2x2': return { width: 364, height: 364 };
-    case '4x1': return { width: 734, height: 174 };
-    case '4x2': return { width: 734, height: 364 };
-    case '2x3': return { width: 364, height: 554 };
-    default: return { width: 364, height: 364 };
+    case '1x1': return { width: 176, height: 176 };
+    case '2x1': return { width: 366, height: 176 };
+    case '2x2': return { width: 366, height: 366 };
+    case '4x1': return { width: 736, height: 176 };
+    case '4x2': return { width: 736, height: 366 };
+    case '2x3': return { width: 366, height: 556 };
+    default: return { width: 366, height: 366 };
   }
 }
 
-// Create an individual standalone BrowserWindow for a single widget
+// Create an individual standalone BrowserWindow for a single widget on the desktop
 function createWidgetWindow(widget) {
   if (activeWindows.has(widget.id)) {
     const win = activeWindows.get(widget.id);
@@ -76,7 +97,8 @@ function createWidgetWindow(widget) {
     frame: false,
     hasShadow: false,
     resizable: false,
-    skipTaskbar: true, // Don't crowd the Windows taskbar
+    movable: !globalLocked, // When global lock is enabled, prevent moving so widget is pinned firmly to desktop
+    skipTaskbar: true, // Do not crowd the taskbar
     alwaysOnTop: widget.alwaysOnTop || false,
     webPreferences: {
       nodeIntegration: true,
@@ -84,8 +106,8 @@ function createWidgetWindow(widget) {
     }
   });
 
-  const devUrl = `http://localhost:5173/?mode=widget&id=${widget.id}&type=${widget.type}&size=${widget.size}`;
-  const prodUrl = `file://${path.join(__dirname, '../dist/index.html')}?mode=widget&id=${widget.id}&type=${widget.type}&size=${widget.size}`;
+  const devUrl = `http://localhost:5173/?mode=widget&id=${widget.id}&type=${widget.type}&size=${widget.size}&locked=${globalLocked}`;
+  const prodUrl = `file://${path.join(__dirname, '../dist/index.html')}?mode=widget&id=${widget.id}&type=${widget.type}&size=${widget.size}&locked=${globalLocked}`;
 
   const isDev = process.argv.includes('--dev') || process.env.NODE_ENV === 'development' || fs.existsSync(path.join(__dirname, '../node_modules'));
   if (isDev) {
@@ -94,9 +116,9 @@ function createWidgetWindow(widget) {
     win.loadURL(prodUrl);
   }
 
-  // Track window move events and auto-save exact desktop coordinates
+  // Track window move events and auto-save exact coordinates
   win.on('moved', () => {
-    if (win.isDestroyed()) return;
+    if (win.isDestroyed() || globalLocked) return;
     const [newX, newY] = win.getPosition();
     const widgets = loadWidgetsConfig();
     const updated = widgets.map(w => w.id === widget.id ? { ...w, x: newX, y: newY } : w);
@@ -111,7 +133,7 @@ function createWidgetWindow(widget) {
   return win;
 }
 
-// Create the MacWidgets Control Hub / Gallery Window
+// Create the MacWidgets Settings / Gallery Window (Must be a NORMAL opaque window, NOT transparent!)
 function createHubWindow() {
   if (hubWindow && !hubWindow.isDestroyed()) {
     hubWindow.focus();
@@ -119,14 +141,16 @@ function createHubWindow() {
   }
 
   hubWindow = new BrowserWindow({
-    width: 860,
-    height: 640,
+    width: 920,
+    height: 680,
     center: true,
-    transparent: true,
-    frame: false,
-    hasShadow: true,
-    resizable: false,
-    skipTaskbar: false, // Show Hub in taskbar
+    transparent: false, // Settings window must be OPAQUE and crystal clear!
+    backgroundColor: '#1C1C1E', // Solid Apple Dark Mode Settings background
+    frame: true, // Native window controls so it behaves like a true settings app
+    autoHideMenuBar: true,
+    title: 'MacWidgets 小组件设置与组件库 (Settings & Gallery)',
+    resizable: true,
+    skipTaskbar: false, // Show Settings in taskbar
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false
@@ -151,18 +175,22 @@ function createHubWindow() {
 }
 
 function createTrayIcon() {
-  // Try using icon if exists, otherwise right-click tray menu works
   try {
     const iconPath = path.join(__dirname, '../public/tray-icon.png');
     if (fs.existsSync(iconPath)) {
       tray = new Tray(iconPath);
       const contextMenu = Menu.buildFromTemplate([
-        { label: '🖥️ 打开控制中心 (添加与管理组件)', click: () => createHubWindow() },
+        { label: '⚙️ 打开小组件设置与组件库 (Settings)', click: () => createHubWindow() },
         { type: 'separator' },
-        { label: '🔄 重新对齐所有小组件', click: () => initAllWidgets() },
+        { 
+          label: globalLocked ? '🔓 解锁所有组件 (允许拖拽排布)' : '🔒 锁定所有组件 (固定在桌面层)', 
+          click: () => toggleGlobalLockState() 
+        },
+        { label: '🔄 重新对齐所有桌面组件', click: () => initAllWidgets() },
+        { type: 'separator' },
         { label: '❌ 退出 MacWidgets', click: () => app.quit() }
       ]);
-      tray.setToolTip('MacWidgets for Windows · 独立小组件');
+      tray.setToolTip('MacWidgets for Windows · 独立桌面组件');
       tray.setContextMenu(contextMenu);
       tray.on('double-click', () => createHubWindow());
     }
@@ -171,7 +199,27 @@ function createTrayIcon() {
   }
 }
 
+function toggleGlobalLockState(forceState) {
+  globalLocked = forceState !== undefined ? forceState : !globalLocked;
+  saveGlobalLock(globalLocked);
+
+  // Apply to all active windows
+  activeWindows.forEach(win => {
+    if (!win.isDestroyed()) {
+      win.setMovable(!globalLocked);
+      win.webContents.send('lock-changed', globalLocked);
+    }
+  });
+
+  if (hubWindow && !hubWindow.isDestroyed()) {
+    hubWindow.webContents.send('lock-changed', globalLocked);
+  }
+  
+  createTrayIcon(); // Rebuild menu with new lock state text
+}
+
 function initAllWidgets() {
+  globalLocked = loadGlobalLock();
   const widgets = loadWidgetsConfig();
   widgets.forEach(w => {
     createWidgetWindow(w);
@@ -180,7 +228,7 @@ function initAllWidgets() {
 
 app.whenReady().then(() => {
   initAllWidgets();
-  createHubWindow(); // Also open the Control Hub on initial launch so the user sees the new clean layout
+  createHubWindow();
   createTrayIcon();
 
   app.on('activate', () => {
@@ -192,15 +240,18 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
-  // Keep app running in background even if all windows closed, or quit when user requests
   if (process.platform !== 'darwin' && !tray) {
-    // We can stay active or check activeWindows
+    // Keep running
   }
 });
 
-// IPC Communication Handlers
+// IPC Handlers
 ipcMain.handle('get-widgets-config', () => {
   return loadWidgetsConfig();
+});
+
+ipcMain.handle('get-lock-status', () => {
+  return globalLocked;
 });
 
 ipcMain.on('open-hub', () => {
@@ -213,14 +264,17 @@ ipcMain.on('close-hub', () => {
   }
 });
 
+ipcMain.on('toggle-global-lock', (event, targetState) => {
+  toggleGlobalLockState(targetState);
+});
+
 ipcMain.on('add-widget', (event, { type, size }) => {
   const widgets = loadWidgetsConfig();
   const newId = `w-${type}-${Date.now()}`;
   
-  // Calculate a smart staggered initial position near center of screen
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
-  const newX = Math.floor((width / 2) - 180 + (Math.random() * 120 - 60));
-  const newY = Math.floor((height / 2) - 180 + (Math.random() * 120 - 60));
+  const newX = Math.floor((width / 2) - 180 + (Math.random() * 140 - 70));
+  const newY = Math.floor((height / 2) - 180 + (Math.random() * 140 - 70));
 
   const newWidget = { id: newId, type, size, x: newX, y: newY, alwaysOnTop: false };
   const updated = [newWidget, ...widgets];
@@ -228,7 +282,6 @@ ipcMain.on('add-widget', (event, { type, size }) => {
 
   createWidgetWindow(newWidget);
 
-  // Notify hub if open
   if (hubWindow && !hubWindow.isDestroyed()) {
     hubWindow.webContents.send('config-updated', updated);
   }
@@ -263,7 +316,6 @@ ipcMain.on('update-widget-size', (event, { id, nextSize }) => {
     if (!win.isDestroyed()) {
       const { width, height } = getDimensionsForSize(nextSize);
       win.setSize(width, height);
-      // Also notify renderer inside this window
       win.webContents.send('size-changed', nextSize);
     }
   }
@@ -291,6 +343,15 @@ ipcMain.on('toggle-widget-top', (event, { id }) => {
 
   if (hubWindow && !hubWindow.isDestroyed()) {
     hubWindow.webContents.send('config-updated', widgets);
+  }
+});
+
+ipcMain.on('focus-widget', (event, id) => {
+  if (activeWindows.has(id)) {
+    const win = activeWindows.get(id);
+    if (!win.isDestroyed()) {
+      win.focus();
+    }
   }
 });
 
